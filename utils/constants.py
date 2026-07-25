@@ -1,0 +1,40 @@
+"""
+System constants and physical boundaries for the Greenhouse Digital Twin project.
+"""
+
+# Environmental Boundaries & Optimal Ranges for Tomato Crops
+OPTIMAL_TEMP_MIN = 18.0  # Celsius
+OPTIMAL_TEMP_MAX = 26.0  # Celsius
+TEMP_MIN_BOUND = 10.0
+TEMP_MAX_BOUND = 40.0
+
+OPTIMAL_HUMIDITY_MIN = 60.0  # %
+OPTIMAL_HUMIDITY_MAX = 80.0  # %
+HUMIDITY_MIN_BOUND = 30.0
+HUMIDITY_MAX_BOUND = 95.0
+
+OPTIMAL_CO2_MIN = 600.0  # ppm
+OPTIMAL_CO2_MAX = 1000.0  # ppm
+CO2_MIN_BOUND = 350.0
+CO2_MAX_BOUND = 1500.0
+
+OPTIMAL_PAR_MIN = 300.0  # umol/m2/s (PAR light)
+OPTIMAL_PAR_MAX = 800.0
+PAR_MIN_BOUND = 0.0
+PAR_MAX_BOUND = 1200.0
+
+# Simulation defaults
+DEFAULT_TIME_STEP_MINUTES = 60
+DEFAULT_SIMULATION_DAYS = 60
+RANDOM_SEED = 42
+
+# Plant growth parameters
+MAX_PLANT_HEIGHT_CM = 200.0  # cm
+BASE_GROWTH_RATE_CM_PER_DAY = 2.5
+
+# Machine Learning Defaults
+SEQUENCE_LENGTH = 24  # 24 hours lookback window
+TRAIN_SPLIT_RATIO = 0.8
+BATCH_SIZE = 32
+EPOCHS = 40
+LEARNING_RATE = 0.001
