@@ -59,19 +59,14 @@ st.markdown('<div class="sub-header">Crop Growth Prediction using Sensor Data & 
 # -------------------------------------------------------------
 # Sidebar Controls
 # -------------------------------------------------------------
-st.sidebar.title("🎛️ Simulation Controls")
+st.sidebar.title("🎛️ Dataset Controls")
 
-sim_days = st.sidebar.select_slider(
-    "Simulation Period (Days)",
-    options=[30, 60, 90, 120],
-    value=60
-)
-
-random_seed = st.sidebar.number_input(
-    "Random Seed",
-    min_value=1,
-    max_value=9999,
-    value=42
+real_data_sample = st.sidebar.number_input(
+    "Sample size for real data",
+    min_value=0,
+    value=0,
+    step=100,
+    help="Set to 0 to use the full dataset; use a sample for faster loading and rendering."
 )
 
 model_choice = st.sidebar.selectbox(
@@ -79,18 +74,39 @@ model_choice = st.sidebar.selectbox(
     ["Stacked LSTM Network", "Linear Regression (Baseline)"]
 )
 
-# Cached Dataset Generation
+# Cached Real Dataset Loading
 @st.cache_data
-def get_sensor_data(days: int, seed: int):
-    simulator = SensorSimulator(seed=seed)
-    return simulator.generate_dataset(days=days, interval_minutes=60)
+def get_real_sensor_data(sample_size: int):
+    simulator = SensorSimulator()
+    sample = sample_size if sample_size > 0 else None
+    df = simulator.load_from_kaggle_agc(
+        data_dir=paths.raw_data_dir,
+        download=False,
+        sample=sample
+    )
 
-df_dataset = get_sensor_data(sim_days, random_seed)
+    if df is None:
+        fallback_csv = paths.dataset_csv
+        if fallback_csv.exists():
+            df = simulator.load_from_csv(fallback_csv)
+
+    if df is not None and sample is not None and sample > 0 and len(df) > sample:
+        df = df.sample(n=sample, random_state=42).reset_index(drop=True)
+
+    return df
+
+df_dataset = get_real_sensor_data(real_data_sample)
+
+if df_dataset is None:
+    st.error(
+        "Unable to load any greenhouse dataset. Please ensure the local dataset exists at data/greenhouse_dataset.csv."
+    )
+    st.stop()
 
 # Timeline Step Slider
 max_step = len(df_dataset) - 1
 selected_step = st.sidebar.slider(
-    "Timeline Slider (Simulation Hour)",
+    "Timeline Slider (Data Record)",
     min_value=0,
     max_value=max_step,
     value=max_step

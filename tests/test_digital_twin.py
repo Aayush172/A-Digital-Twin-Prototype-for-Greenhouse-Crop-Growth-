@@ -44,3 +44,4 @@ def test_twin_sqlite_persistence():
         df_db = twin.load_history_from_db()
         assert len(df_db) == 1
         assert df_db["temperature"].iloc[0] == 24.5
+        twin.close()

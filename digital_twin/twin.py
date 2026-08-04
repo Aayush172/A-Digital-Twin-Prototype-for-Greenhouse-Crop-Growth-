@@ -22,28 +22,46 @@ class GreenhouseDigitalTwin:
         self.db_path = db_path
         self.current_state: Optional[DigitalTwinState] = None
         self.history: List[DigitalTwinState] = []
+        self._conn: Optional[sqlite3.Connection] = None
         if self.db_path:
             self._init_database()
 
     def _init_database(self) -> None:
         """Initializes SQLite database schema for Digital Twin state storage."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS twin_telemetry (
-                    step INTEGER PRIMARY KEY,
-                    timestamp TEXT NOT NULL,
-                    temperature REAL NOT NULL,
-                    humidity REAL NOT NULL,
-                    co2 REAL NOT NULL,
-                    light_intensity REAL NOT NULL,
-                    plant_height REAL NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.commit()
+        self._conn = sqlite3.connect(self.db_path)
+        cursor = self._conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS twin_telemetry (
+                step INTEGER PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                temperature REAL NOT NULL,
+                humidity REAL NOT NULL,
+                co2 REAL NOT NULL,
+                light_intensity REAL NOT NULL,
+                plant_height REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self._conn.commit()
         logger.info(f"Initialized SQLite database at {self.db_path}")
+
+    def _ensure_connection(self) -> Optional[sqlite3.Connection]:
+        """Returns an active SQLite connection if a DB path is configured."""
+        if not self.db_path:
+            return None
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.db_path)
+        return self._conn
+
+    def close(self) -> None:
+        """Closes open SQLite connection, releasing file handle on Windows."""
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
+
+    def __del__(self):
+        self.close()
 
     def update_state(self, new_state: DigitalTwinState, persist: bool = True) -> None:
         """Updates internal state and optionally persists to SQLite database."""
@@ -51,7 +69,8 @@ class GreenhouseDigitalTwin:
         self.history.append(new_state)
 
         if persist and self.db_path:
-            with sqlite3.connect(self.db_path) as conn:
+            conn = self._ensure_connection()
+            if conn is not None:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO twin_telemetry 
@@ -72,8 +91,10 @@ class GreenhouseDigitalTwin:
         """Loads historical twin telemetry dataframe from SQLite."""
         if not self.db_path or not self.db_path.exists():
             return pd.DataFrame()
-        with sqlite3.connect(self.db_path) as conn:
-            df = pd.read_sql_query("SELECT * FROM twin_telemetry ORDER BY step ASC", conn)
+        conn = self._ensure_connection()
+        if conn is None:
+            return pd.DataFrame()
+        df = pd.read_sql_query("SELECT * FROM twin_telemetry ORDER BY step ASC", conn)
         return df
 
     def get_history_dataframe(self) -> pd.DataFrame:

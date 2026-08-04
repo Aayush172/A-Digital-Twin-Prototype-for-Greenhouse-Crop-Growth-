@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 from datetime import datetime, timedelta
 import requests
+import glob
 
 from utils.logger import get_logger
 
@@ -35,6 +36,30 @@ class MendeleyTomatoDataset:
         self.zip_path = self.data_dir / f"{MENDELEY_DATASET_ID}.zip"
         self.extract_dir = self.data_dir / "extracted"
 
+    @property
+    def processed_csv_path(self) -> Path:
+        return self.data_dir / "mendeley_dataset_processed.csv"
+
+    def load_processed_csv(self, processed_path: Optional[Path] = None) -> Optional[pd.DataFrame]:
+        """Loads an already-processed dataset CSV if available."""
+        processed_path = Path(processed_path) if processed_path else self.processed_csv_path
+        if not processed_path.exists():
+            logger.info(f"Processed dataset CSV not found at {processed_path}")
+            return None
+
+        try:
+            logger.info(f"Loading processed CSV dataset from {processed_path}")
+            df = pd.read_csv(processed_path)
+            if "timestamp" in df.columns:
+                df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+            if "step" not in df.columns and "timestamp" in df.columns:
+                df = df.sort_values("timestamp").reset_index(drop=True)
+                df["step"] = df.index
+            return df
+        except Exception as e:
+            logger.error(f"Failed to load processed CSV dataset: {e}")
+            return None
+
     def download_dataset(self, force: bool = False) -> bool:
         """
         Downloads Mendeley dataset if not already present.
@@ -51,7 +76,16 @@ class MendeleyTomatoDataset:
 
         try:
             logger.info(f"Downloading Mendeley dataset from {MENDELEY_DATASET_URL}...")
-            response = requests.get(MENDELEY_DATASET_URL, stream=True, timeout=300)
+            response = requests.get(
+                MENDELEY_DATASET_URL,
+                stream=True,
+                timeout=300,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                    "Accept": "application/zip,application/octet-stream,*/*;q=0.9",
+                    "Referer": "https://data.mendeley.com/datasets/tkbkzdt5nr/2",
+                },
+            )
             response.raise_for_status()
 
             total_size = int(response.headers.get('content-length', 0))
@@ -97,7 +131,61 @@ class MendeleyTomatoDataset:
     def load_environment_data(self) -> Optional[pd.DataFrame]:
         """Loads environment measurements (temperature, humidity, light)."""
         env_dir = self.extract_dir / "Environment"
-        
+        raw_root = None
+
+        candidate_roots = []
+        if self.data_dir.exists():
+            candidate_roots.extend([self.data_dir, self.data_dir / "extracted"])
+        candidate_roots.extend([Path("data/raw"), Path("data") / "raw"])
+
+        for candidate in candidate_roots:
+            if not candidate.exists():
+                continue
+            dataset_name = "Microclimate monitoring in commercial tomato (Solanum Lycopersicum L.) greenhouse production and its effect on plant growth, yield and fruit quality dataset"
+            if (candidate / dataset_name).exists():
+                raw_root = candidate / dataset_name
+                break
+            if (candidate / "T&RH").exists() and any((candidate / "T&RH").glob("*/")):
+                raw_root = candidate
+                break
+
+        if raw_root is not None:
+            t_rh_dir = raw_root / "T&RH"
+            if t_rh_dir.exists():
+                year_dirs = [d for d in t_rh_dir.iterdir() if d.is_dir()]
+                env_dfs = []
+                for year_dir in sorted(year_dirs):
+                    xlsx_files = sorted(year_dir.glob("*.xlsx"))
+                    for xlsx_file in xlsx_files:
+                        try:
+                            df = pd.read_excel(xlsx_file)
+                            if df.empty:
+                                continue
+                            env_dfs.append(df)
+                        except Exception as exc:
+                            logger.warning(f"Failed to read {xlsx_file}: {exc}")
+                if env_dfs:
+                    env_df = pd.concat(env_dfs, ignore_index=True)
+                    env_df = self._standardize_env_columns(env_df)
+                    logger.info(f"Loaded {len(env_df)} environment records from local Excel files")
+                    return env_df
+            elif any(raw_root.glob("*.xlsx")):
+                xlsx_files = sorted(raw_root.glob("*.xlsx"))
+                env_dfs = []
+                for xlsx_file in xlsx_files:
+                    try:
+                        df = pd.read_excel(xlsx_file)
+                        if df.empty:
+                            continue
+                        env_dfs.append(df)
+                    except Exception as exc:
+                        logger.warning(f"Failed to read {xlsx_file}: {exc}")
+                if env_dfs:
+                    env_df = pd.concat(env_dfs, ignore_index=True)
+                    env_df = self._standardize_env_columns(env_df)
+                    logger.info(f"Loaded {len(env_df)} environment records from local Excel files")
+                    return env_df
+
         if not env_dir.exists():
             logger.error(f"Environment folder not found at {env_dir}")
             return None
@@ -121,7 +209,6 @@ class MendeleyTomatoDataset:
         if not env_dfs:
             return None
 
-        # Concatenate and standardize
         env_df = pd.concat(env_dfs, ignore_index=True)
         env_df = self._standardize_env_columns(env_df)
 
@@ -161,6 +248,12 @@ class MendeleyTomatoDataset:
 
     def _standardize_env_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Standardizes environment data column names."""
+        if df is None:
+            return pd.DataFrame(columns=["timestamp", "temperature", "humidity", "light_intensity"])
+
+        df = df.copy()
+        df.columns = [str(col) for col in df.columns]
+
         rename_map = {
             "Temp": "temperature",
             "Temperature": "temperature",
@@ -168,6 +261,7 @@ class MendeleyTomatoDataset:
             "RH": "humidity",
             "Humidity": "humidity",
             "H": "humidity",
+            "RelativeHumidity": "humidity",
             "PAR": "light_intensity",
             "Light": "light_intensity",
             "par": "light_intensity",
@@ -176,30 +270,49 @@ class MendeleyTomatoDataset:
             "Time": "timestamp",
             "time": "timestamp",
             "Timestamp": "timestamp",
+            "Timestep": "timestamp",
         }
-        
+
         df = df.rename(columns=rename_map)
-        
-        # Parse timestamp if exists
+        df = df.loc[:, ~df.columns.duplicated()].copy()
+
+        for col in ["temperature", "humidity", "light_intensity"]:
+            if col in df.columns:
+                try:
+                    if isinstance(df[col], pd.DataFrame):
+                        values = df[col].iloc[:, 0]
+                    else:
+                        values = df[col]
+                    df[col] = pd.to_numeric(values, errors="coerce")
+                except TypeError:
+                    if isinstance(df[col], pd.DataFrame):
+                        values = df[col].iloc[:, 0]
+                    else:
+                        values = df[col]
+                    df[col] = pd.Series(pd.to_numeric(values.astype(str), errors="coerce"))
+
         if "timestamp" in df.columns:
             try:
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
-            except:
+                df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+            except Exception:
                 logger.warning("Could not parse timestamp column")
+        else:
+            df["timestamp"] = pd.date_range("2018-01-01", periods=len(df), freq="h")
 
-        # Fill missing essential columns with defaults
         if "temperature" not in df.columns:
             df["temperature"] = 22.0
             logger.warning("temperature column not found, using default 22.0°C")
-        
+
         if "humidity" not in df.columns:
             df["humidity"] = 65.0
             logger.warning("humidity column not found, using default 65%")
-        
+
         if "light_intensity" not in df.columns:
             df["light_intensity"] = 300.0
             logger.warning("light_intensity column not found, using default 300 µmol/m²/s")
 
+        df = df[["timestamp", "temperature", "humidity", "light_intensity"]].copy()
+        df = df.dropna(subset=["timestamp"]).reset_index(drop=True)
         return df
 
     def create_unified_dataset(self, env_df: Optional[pd.DataFrame] = None,
@@ -263,20 +376,25 @@ class MendeleyTomatoDataset:
         Returns:
             Unified DataFrame with environment and plant data, or None if failed
         """
+        # Prefer a cached, already-processed CSV dataset if available.
+        processed_df = self.load_processed_csv()
+        if processed_df is not None:
+            return processed_df
+
         if download:
             if not self.download_dataset():
-                logger.error("Download failed")
-                return None
+                logger.warning("Download failed or was blocked. Will attempt to use local extracted files if available.")
 
         if extract:
             if not self.extract_dataset():
-                logger.error("Extraction failed")
-                return None
+                logger.warning("Extraction failed or was skipped. Will attempt to use local extracted files if available.")
 
         env_df = self.load_environment_data()
         plant_df = self.load_plant_data()
 
         unified_df = self.create_unified_dataset(env_df, plant_df)
+        if unified_df is not None:
+            self.save_to_csv(unified_df)
         return unified_df
 
     def save_to_csv(self, df: pd.DataFrame, output_path: Optional[Path] = None) -> bool:

@@ -124,7 +124,7 @@ pytest tests/
 This repository accompanies the MSc Artificial Intelligence Capstone dissertation:
 > **"A Digital Twin Prototype for Greenhouse Crop Growth Prediction Using Environmental Sensor Data and LSTM Networks"**
 
-The full ~15,000-word dissertation document with complete literature review, mathematical derivations, architecture diagrams, IEEE citations, and critical discussion is provided in the repository workspace.
+The full ~10,000-word dissertation document with complete literature review, mathematical derivations, architecture diagrams, IEEE citations, and critical discussion is provided in the repository workspace.
 
 ---
 

@@ -14,6 +14,7 @@ from digital_twin.environment import GreenhouseEnvironment
 from plant.plant import PlantGrowthModel
 from utils.logger import get_logger
 from utils.mendeley_loader import MendeleyTomatoDataset
+from utils.kaggle_loader import KaggleGreenhouseDataset
 
 logger = get_logger("SensorSimulator")
 
@@ -133,5 +134,30 @@ class SensorSimulator:
             df = df.sample(n=sample, random_state=42).reset_index(drop=True)
             logger.info(f"Sampled {sample} records for testing")
         
+        return df
+
+    @staticmethod
+    def load_from_kaggle_agc(data_dir: Optional[Path] = None, download: bool = True,
+                             sample: Optional[int] = None) -> Optional[pd.DataFrame]:
+        """
+        Loads real greenhouse dataset from Kaggle AGC 2nd challenge.
+
+        Args:
+            data_dir: Directory for cached processed data
+            download: Whether to download via kagglehub if needed
+            sample: Optional sample size for quick dashboard rendering
+
+        Returns:
+            Standardized DataFrame or None on failure
+        """
+        logger.info("Loading Kaggle AGC greenhouse dataset...")
+        loader = KaggleGreenhouseDataset(data_dir=data_dir)
+        df = loader.load_full_dataset(download=download, sample=sample)
+
+        if df is None:
+            logger.error("Failed to load Kaggle AGC dataset")
+            return None
+
+        logger.info(f"Loaded {len(df)} records from Kaggle AGC dataset")
         return df
 

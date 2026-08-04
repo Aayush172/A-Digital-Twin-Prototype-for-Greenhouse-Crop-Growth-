@@ -19,8 +19,6 @@ from digital_twin.sensor_simulator import SensorSimulator
 from digital_twin.twin import GreenhouseDigitalTwin
 from digital_twin.state import DigitalTwinState
 from evaluation.evaluator import Evaluator
-from optimization.env import GreenhouseEnv
-from optimization.agent import RLAgent
 from utils.logger import get_logger
 
 logger = get_logger("Main")
@@ -88,61 +86,8 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
     
     # 4. Reinforcement Learning Agent Training (Optional)
     if train_rl:
-        logger.info("=== Starting Reinforcement Learning Agent Training ===")
-        
-        # Create initial state for RL environment
-        first_row = df_dataset.iloc[0]
-        initial_state = DigitalTwinState(
-            timestamp=str(first_row['timestamp']),
-            temperature=float(first_row['temperature']),
-            humidity=float(first_row['humidity']),
-            co2=float(first_row['co2']),
-            light_intensity=float(first_row['light_intensity']),
-            plant_height=float(first_row['plant_height']),
-            step=0
-        )
-        
-        # Initialize RL environment
-        rl_env = GreenhouseEnv(
-            initial_state=initial_state,
-            episode_length=168,  # 1 week
-            reward_weight_growth=0.5,
-            reward_weight_conditions=0.3,
-            reward_weight_energy=0.2,
-        )
-        
-        # Create and train agent
-        rl_agent = RLAgent(
-            env=rl_env,
-            model_dir=paths.models_dir,
-            learning_rate=3e-4,
-            batch_size=64,
-        )
-        
-        rl_results = rl_agent.train(
-            total_timesteps=rl_timesteps,
-            eval_freq=5000,
-            patience=5,
-        )
-        
-        logger.info(f"RL Training Results: {rl_results}")
-        
-        # Evaluate trained agent
-        eval_results = rl_agent.evaluate(n_eval_episodes=10)
-        logger.info(f"RL Evaluation Results: {eval_results}")
-        
-        # Save results
-        import json
-        rl_results_file = paths.results_dir / "rl_training_results.json"
-        with open(rl_results_file, 'w') as f:
-            json.dump({
-                "training": rl_results,
-                "evaluation": eval_results
-            }, f, indent=2)
-        logger.info(f"Saved RL results to {rl_results_file}")
-        
-        rl_env.close()
-    
+        logger.warning("Reinforcement Learning agent training is disabled because the required RL dependencies are not installed.")
+
     logger.info("=== Pipeline Execution Finished Successfully ===")
 
 if __name__ == "__main__":
