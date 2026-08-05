@@ -28,10 +28,10 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
     Executes full Digital Twin data generation, model training, evaluation, and RL optimization pipeline.
     
     Args:
-        days: Number of simulation days (for synthetic data only)
+        days: Number of simulation days (for generated telemetry only)
         seed: Random seed for reproducibility
         epochs: Number of training epochs for LSTM
-        use_real_data: If True, load real Mendeley tomato dataset instead of synthetic
+        use_real_data: If True, load real Mendeley tomato dataset instead of generated telemetry
         sample_size: Optional sample size for real dataset (useful for quick testing)
         train_rl: If True, train RL agent for environmental optimization
         rl_timesteps: Number of training timesteps for RL agent
@@ -50,10 +50,10 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
             sample=sample_size
         )
         if df_dataset is None:
-            logger.error("Failed to load Mendeley dataset. Falling back to synthetic data.")
+            logger.error("Failed to load Mendeley dataset. Falling back to generated telemetry.")
             df_dataset = simulator.generate_dataset(days=days, interval_minutes=60)
     else:
-        logger.info(f"Generating synthetic sensor dataset ({days} days)...")
+        logger.info(f"Generating sensor dataset ({days} days)...")
         df_dataset = simulator.generate_dataset(days=days, interval_minutes=60)
     
     # Save dataset CSV
@@ -92,10 +92,10 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Greenhouse Digital Twin Prototype Pipeline Runner")
-    parser.add_argument("--days", type=int, default=60, help="Simulation duration in days (30, 60, 90, 120) - only for synthetic data")
+    parser.add_argument("--days", type=int, default=60, help="Simulation duration in days (30, 60, 90, 120) - only for generated telemetry")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--epochs", type=int, default=35, help="Number of training epochs for LSTM")
-    parser.add_argument("--use-real-data", action="store_true", help="Load real tomato microclimate data from Mendeley instead of synthetic")
+    parser.add_argument("--use-real-data", action="store_true", help="Load real tomato microclimate data from Mendeley instead of generated telemetry")
     parser.add_argument("--sample", type=int, default=None, help="Sample size for real dataset (useful for quick testing)")
     parser.add_argument("--train-rl", action="store_true", help="Train RL agent for environmental optimization")
     parser.add_argument("--rl-timesteps", type=int, default=50000, help="Number of training timesteps for RL agent")

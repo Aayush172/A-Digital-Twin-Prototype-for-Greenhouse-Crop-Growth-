@@ -89,7 +89,7 @@ pip install -r requirements.txt
 ### 2. Run Pipeline & Experiments via CLI
 Execute the end-to-end simulation, model training, and comparative evaluation:
 
-**Using Synthetic Data (Default)**:
+**Using Generated Telemetry (Default)**:
 ```bash
 python main.py --days 60 --seed 42 --epochs 35
 ```

@@ -1,6 +1,6 @@
 # Using Real Mendeley Tomato Microclimate Dataset
 
-Your greenhouse digital twin project now supports loading **real microclimate data** from the Mendeley tomato dataset instead of using only synthetic data.
+Your greenhouse digital twin project now supports loading **real microclimate data** from the Mendeley tomato dataset instead of using only generated telemetry.
 
 ## Dataset Information
 
@@ -160,7 +160,7 @@ Real data characteristics:
 - **Plant growth**: 5-200+ cm stem length
 
 Models trained on real data may show:
-- Different error patterns vs. synthetic data
+- Different error patterns vs. generated telemetry
 - Seasonal trends and anomalies
 - More realistic environmental fluctuations
 

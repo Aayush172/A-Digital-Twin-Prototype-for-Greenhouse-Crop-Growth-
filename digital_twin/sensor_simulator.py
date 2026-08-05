@@ -30,10 +30,10 @@ class SensorSimulator:
 
     def generate_dataset(self, days: int = 60, interval_minutes: int = 60, start_date: str = "2026-05-01 00:00:00") -> pd.DataFrame:
         """
-        Generates synthetic time-series sensor data and plant growth telemetry.
+        Generates time-series sensor data and plant growth telemetry.
         Supported days: 30, 60, 90, 120.
         """
-        logger.info(f"Generating synthetic sensor dataset: {days} days at {interval_minutes}-minute intervals (Seed: {self.seed})...")
+        logger.info(f"Generating sensor dataset: {days} days at {interval_minutes}-minute intervals (Seed: {self.seed})...")
         self.rng = np.random.default_rng(self.seed)
         self.plant_model.reset()
 

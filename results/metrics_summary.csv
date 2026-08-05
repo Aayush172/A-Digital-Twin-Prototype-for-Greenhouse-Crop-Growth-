@@ -1,3 +1,3 @@
 Model,MAE,RMSE,R2,Training Time (s),Inference Time (s),RMSE Improvement (%),MAE Improvement (%)
-Linear Regression (Baseline),35.2818,44.0668,-3.8542,0.0318,0.0006,0.0,0.0
-Stacked LSTM Neural Network,133.7906,135.8236,-45.1149,1.9422,0.0866,-208.22,-279.21
+Linear Regression (Baseline),0.0007,0.0009,1.0,0.1281,0.0003,0.0,0.0
+Stacked LSTM Neural Network,22.7047,22.9456,-40.7693,180.5923,0.6515,-2549411.11,-3243428.57
