@@ -78,20 +78,37 @@ model_choice = st.sidebar.selectbox(
 @st.cache_data
 def get_real_sensor_data(sample_size: int):
     simulator = SensorSimulator()
-    sample = sample_size if sample_size > 0 else None
     df = simulator.load_from_kaggle_agc(
         data_dir=paths.raw_data_dir,
         download=False,
-        sample=sample
+        sample=None
     )
 
     if df is None:
-        fallback_csv = paths.dataset_csv
+        mendeley_csv = paths.raw_data_dir / "mendeley_dataset_processed.csv"
+        fallback_csv = mendeley_csv if sample_size > 0 and mendeley_csv.exists() else paths.dataset_csv
         if fallback_csv.exists():
             df = simulator.load_from_csv(fallback_csv)
 
-    if df is not None and sample is not None and sample > 0 and len(df) > sample:
-        df = df.sample(n=sample, random_state=42).reset_index(drop=True)
+    if df is not None:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        df = df.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+
+        for column, default in (("co2", 400.0), ("light_intensity", 300.0)):
+            if column not in df.columns:
+                df[column] = default
+            df[column] = pd.to_numeric(df[column], errors="coerce")
+            df[column] = df[column].replace([np.inf, -np.inf], np.nan)
+            if df[column].notna().any():
+                df[column] = df[column].interpolate().ffill().bfill()
+            else:
+                df[column] = default
+
+        if sample_size > 0 and len(df) > sample_size:
+            sample_indices = np.linspace(0, len(df) - 1, sample_size, dtype=int)
+            df = df.iloc[sample_indices].reset_index(drop=True)
+
+        df["step"] = df.index
 
     return df
 

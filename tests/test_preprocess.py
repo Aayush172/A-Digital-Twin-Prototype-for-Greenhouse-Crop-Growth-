@@ -35,3 +35,4 @@ def test_create_sequences(sample_dataframe):
 
     assert X.shape == (100 - 12, 12, 5)
     assert y.shape == (100 - 12,)
+

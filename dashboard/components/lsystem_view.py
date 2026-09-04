@@ -17,4 +17,4 @@ def render_lsystem_view(current_height_cm: float) -> None:
     renderer = PlantRenderer(branching_angle=25.0)
     fig_plant = renderer.render_plotly_2d(current_height_cm)
 
-    st.plotly_chart(fig_plant, use_container_width=True)
+    st.plotly_chart(fig_plant, width='stretch')

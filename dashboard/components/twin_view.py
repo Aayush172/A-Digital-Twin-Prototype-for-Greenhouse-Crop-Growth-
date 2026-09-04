@@ -38,14 +38,14 @@ def render_twin_telemetry_view(df_history: pd.DataFrame) -> None:
         margin=dict(l=40, r=40, t=50, b=40),
         legend=dict(x=0.01, y=0.99)
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # CO2 and PAR Light Charts
     c1, c2 = st.columns(2)
     with c1:
         fig_co2 = px.line(df_history, x='timestamp', y='co2', title="CO₂ Concentration (ppm)", color_discrete_sequence=['#4caf50'])
-        st.plotly_chart(fig_co2, use_container_width=True)
+        st.plotly_chart(fig_co2, width='stretch')
 
     with c2:
         fig_par = px.line(df_history, x='timestamp', y='light_intensity', title="PAR Light Intensity (μmol/m²/s)", color_discrete_sequence=['#ffb300'])
-        st.plotly_chart(fig_par, use_container_width=True)
+        st.plotly_chart(fig_par, width='stretch')
