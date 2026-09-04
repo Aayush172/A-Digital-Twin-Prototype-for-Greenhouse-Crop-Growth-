@@ -14,6 +14,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 import argparse
+import json
 from config.settings import paths, sim_config, model_config
 from digital_twin.sensor_simulator import SensorSimulator
 from digital_twin.twin import GreenhouseDigitalTwin
@@ -50,8 +51,10 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
             sample=sample_size
         )
         if df_dataset is None:
-            logger.error("Failed to load Mendeley dataset. Falling back to generated telemetry.")
-            df_dataset = simulator.generate_dataset(days=days, interval_minutes=60)
+            raise RuntimeError(
+                "Mendeley data could not be loaded; refusing to substitute synthetic data "
+                "for a requested real-data run."
+            )
     else:
         logger.info(f"Generating sensor dataset ({days} days)...")
         df_dataset = simulator.generate_dataset(days=days, interval_minutes=60)
@@ -86,7 +89,37 @@ def run_pipeline(days: int = 60, seed: int = 42, epochs: int = 35, use_real_data
     
     # 4. Reinforcement Learning Agent Training (Optional)
     if train_rl:
-        logger.warning("Reinforcement Learning agent training is disabled because the required RL dependencies are not installed.")
+        try:
+            from optimization.agent import RLAgent
+            from optimization.env import GreenhouseEnv
+
+            first_row = df_dataset.iloc[0]
+            initial_state = DigitalTwinState(
+                timestamp=str(first_row["timestamp"]),
+                temperature=float(first_row["temperature"]),
+                humidity=float(first_row["humidity"]),
+                co2=float(first_row["co2"]),
+                light_intensity=float(first_row["light_intensity"]),
+                plant_height=float(first_row["plant_height"]),
+                step=int(first_row["step"]),
+            )
+            rl_env = GreenhouseEnv(initial_state=initial_state)
+            rl_agent = RLAgent(rl_env, model_dir=paths.models_dir)
+            training_results = rl_agent.train(total_timesteps=rl_timesteps)
+            evaluation_results = rl_agent.evaluate()
+            rl_results_path = paths.results_dir / "rl_training_results.json"
+            rl_results_path.write_text(
+                json.dumps(
+                    {"training": training_results, "evaluation": evaluation_results},
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            logger.info(f"Saved RL results to {rl_results_path}")
+        except ImportError as exc:
+            raise RuntimeError(
+                "Install stable-baselines3 and gymnasium to use --train-rl"
+            ) from exc
 
     logger.info("=== Pipeline Execution Finished Successfully ===")
 

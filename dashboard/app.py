@@ -22,6 +22,7 @@ from dashboard.components.metrics_cards import render_metrics_cards
 from dashboard.components.twin_view import render_twin_telemetry_view
 from dashboard.components.lsystem_view import render_lsystem_view
 from dashboard.components.model_eval_view import render_model_eval_view
+from dashboard.components.rl_view import render_rl_view
 
 st.set_page_config(
     page_title="Greenhouse Digital Twin Prototype",
@@ -62,11 +63,11 @@ st.markdown('<div class="sub-header">Crop Growth Prediction using Sensor Data & 
 st.sidebar.title("🎛️ Dataset Controls")
 
 real_data_sample = st.sidebar.number_input(
-    "Sample size for real data",
+    "Sample size for Mendeley data",
     min_value=0,
     value=0,
     step=100,
-    help="Set to 0 to use the full dataset; use a sample for faster loading and rendering."
+    help="Set to 0 to use the full local Mendeley dataset; use a sample for faster loading and rendering."
 )
 
 model_choice = st.sidebar.selectbox(
@@ -78,17 +79,19 @@ model_choice = st.sidebar.selectbox(
 @st.cache_data
 def get_real_sensor_data(sample_size: int):
     simulator = SensorSimulator()
-    df = simulator.load_from_kaggle_agc(
+    source = "Mendeley tomato greenhouse dataset"
+    df = simulator.load_from_mendeley(
         data_dir=paths.raw_data_dir,
         download=False,
-        sample=None
+        extract=False,
+        sample=None,
     )
 
     if df is None:
-        mendeley_csv = paths.raw_data_dir / "mendeley_dataset_processed.csv"
-        fallback_csv = mendeley_csv if sample_size > 0 and mendeley_csv.exists() else paths.dataset_csv
-        if fallback_csv.exists():
-            df = simulator.load_from_csv(fallback_csv)
+        st.warning("Mendeley data is unavailable. Loading the last generated dataset instead.")
+        source = "Last generated dataset (Mendeley unavailable)"
+        if paths.dataset_csv.exists():
+            df = simulator.load_from_csv(paths.dataset_csv)
 
     if df is not None:
         df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
@@ -110,15 +113,17 @@ def get_real_sensor_data(sample_size: int):
 
         df["step"] = df.index
 
-    return df
+    return df, source
 
-df_dataset = get_real_sensor_data(real_data_sample)
+df_dataset, data_source = get_real_sensor_data(real_data_sample)
 
 if df_dataset is None:
     st.error(
         "Unable to load any greenhouse dataset. Please ensure the local dataset exists at data/greenhouse_dataset.csv."
     )
     st.stop()
+
+st.caption(f"Data source: {data_source}")
 
 # Timeline Step Slider
 max_step = len(df_dataset) - 1
@@ -151,10 +156,11 @@ st.markdown("---")
 # -------------------------------------------------------------
 # Navigation Tabs
 # -------------------------------------------------------------
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Digital Twin & Sensor Telemetry",
     "🪴 Procedural L-System Plant Growth",
-    "📈 Model Predictions & MSc Evaluation"
+    "📈 Model Predictions & MSc Evaluation",
+    "🤖 RL Environmental Control"
 ])
 
 with tab1:
@@ -166,3 +172,6 @@ with tab2:
 
 with tab3:
     render_model_eval_view(paths.results_dir, paths.figures_dir)
+
+with tab4:
+    render_rl_view(paths.results_dir, paths.models_dir, current_state)

@@ -39,5 +39,5 @@
 - `create_tabular_lagged_features(df_scaled: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]`: Flattens sequences for Linear Regression baseline.
 
 ### Class: `GreenhouseLSTMModel`
-- `fit(X_train, y_train, val_data, epochs, batch_size) -> Dict`: Trains Stacked Keras LSTM network.
+- `fit(X_train, y_train, val_data, epochs, batch_size) -> Dict`: Fits the custom NumPy recurrent sequence model and records training metrics.
 - `predict(X) -> np.ndarray`: Performs time-series forecasting.

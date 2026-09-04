@@ -28,7 +28,7 @@ pip install -r requirements.txt
 ## How to Run
 
 ### 1. Execute End-to-End Pipeline via CLI
-Run model training, dataset generation, and automated comparative evaluation:
+Run model training, dataset generation, and automated comparative evaluation. The default command uses reproducible synthetic telemetry:
 ```bash
 python main.py --days 60 --seed 42 --epochs 35
 ```
@@ -37,6 +37,12 @@ Parameters:
 - `--seed`: Integer seed for pseudo-random data generation reproducibility. Default: 42.
 - `--epochs`: Number of training epochs for the Stacked LSTM network. Default: 35.
 
+To reproduce the reported real-data experiment, use the processed Mendeley tomato dataset:
+```bash
+python main.py --use-real-data --sample 1000
+```
+The report's quantitative results are based on this Mendeley command, not on the synthetic default.
+
 ### 2. Launch Interactive Streamlit Web Dashboard
 ```bash
 streamlit run dashboard/app.py
@@ -44,6 +50,7 @@ streamlit run dashboard/app.py
 Open your browser at `http://localhost:8501`.
 
 #### Features in Web Dashboard:
+- **Data source**: The dashboard loads the local processed Mendeley dataset for real-data exploration. If it is unavailable, it displays a warning and loads the latest generated dataset as a fallback.
 - **Sidebar Controls**: Adjust simulation length, random seed, active model selection, and time step playback.
 - **Top KPI Cards**: Real-time snapshot of current Temperature, Relative Humidity, CO₂, PAR Light Intensity, and Plant Height.
 - **Tab 1 - Digital Twin Telemetry**: Interactive multi-series charts of historical microclimate sensor streams.

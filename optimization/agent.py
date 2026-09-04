@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import Dict, Tuple
 import gymnasium as gym
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import EarlyStopping, BaseCallback
-from stable_baselines3.common.logger import configure
+from stable_baselines3.common.callbacks import BaseCallback
 from optimization.env import GreenhouseEnv
 from digital_twin.state import DigitalTwinState
 from utils.logger import get_logger
@@ -32,12 +31,13 @@ class CustomLoggingCallback(BaseCallback):
     
     def _on_step(self) -> bool:
         """Called after each environment step."""
-        self.current_episode_reward += self.locals.get("rewards", 0)
+        reward = self.locals.get("rewards", 0.0)
+        self.current_episode_reward += float(np.asarray(reward).reshape(-1)[0])
         self.current_episode_length += 1
         
         # Check for episode termination
         dones = self.locals.get("dones", [False])
-        if dones[0]:
+        if bool(np.asarray(dones).reshape(-1)[0]):
             self.episode_rewards.append(self.current_episode_reward)
             self.episode_lengths.append(self.current_episode_length)
             

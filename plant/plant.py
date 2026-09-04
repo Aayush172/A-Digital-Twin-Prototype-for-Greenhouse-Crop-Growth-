@@ -1,7 +1,7 @@
 """
 Crop Growth Biology Model.
-Calculates crop biomass accumulation and height dynamics using thermal time (growing degree days - GDD)
-and non-linear stress functions for temperature, relative humidity, light, and CO2.
+Calculates simplified crop height dynamics using environmental stress functions for temperature,
+relative humidity, light and CO2, while tracking cumulative thermal time (growing degree days - GDD).
 """
 
 import numpy as np
@@ -18,7 +18,7 @@ from utils.constants import (
 )
 
 class PlantGrowthModel:
-    """Simulates physiological crop growth based on microclimate conditions."""
+    """Simulates simplified height growth based on microclimate stress factors."""
 
     def __init__(self, base_temp: float = 10.0, max_height: float = MAX_PLANT_HEIGHT_CM):
         self.base_temp = base_temp
@@ -67,7 +67,8 @@ class PlantGrowthModel:
     def compute_step_growth(self, temp: float, humidity: float, co2: float,
                             par_light: float, delta_days: float, current_height: float) -> float:
         """Computes plant height increment over delta_days."""
-        # Thermal time increment (GDD)
+        # Track thermal time for diagnostics; the current height equation uses
+        # stress factors and a logistic ceiling rather than GDD directly.
         daily_temp_eff = max(0.0, temp - self.base_temp)
         self.cumulative_gdd += daily_temp_eff * delta_days
 

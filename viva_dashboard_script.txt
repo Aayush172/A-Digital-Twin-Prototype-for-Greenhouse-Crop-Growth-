@@ -1,0 +1,322 @@
+════════════════════════════════════════════════════════════════════════════════
+  VIVA SCRIPT — DASHBOARD WALKTHROUGH
+  Greenhouse Digital Twin Prototype  |  MSc Artificial Intelligence Capstone
+════════════════════════════════════════════════════════════════════════════════
+
+How to use this script
+──────────────────────
+• Speak naturally — these are prompts, not lines to read verbatim.
+• Stage directions are in [square brackets]. Follow them as you speak.
+• Estimated total time: 8–12 minutes for a full walkthrough.
+• For a 5-minute version, skip the sections marked (OPTIONAL).
+• Pause after each section — examiners may ask questions between tabs.
+
+────────────────────────────────────────────────────────────────────────────────
+OPENING  (≈ 60 seconds)
+────────────────────────────────────────────────────────────────────────────────
+
+[Launch the dashboard: streamlit run dashboard/app.py — make sure it is already
+open and visible on screen before you begin speaking.]
+
+"I'd like to walk you through the interactive dashboard I built for this project.
+The dashboard is written in Streamlit and sits at the top of the system stack —
+it's the part of the digital twin that a human operator would actually interact
+with day to day.
+
+The page title reads 'Greenhouse Digital Twin Prototype' and the subtitle
+captures the scope: crop growth prediction using sensor data and a stacked LSTM
+network. Everything visible here is driven live by the underlying Python modules
+— there's no hard-coded sample data in the UI itself.
+
+I'll take you through it section by section: the sidebar controls first, then
+the live KPI cards at the top, and then each of the three tabs."
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 1 — SIDEBAR CONTROLS  (≈ 90 seconds)
+────────────────────────────────────────────────────────────────────────────────
+
+[Point to or click on the sidebar on the left.]
+
+"The sidebar is labelled 'Dataset Controls' and has three interactive elements.
+
+The first is a numeric input called 'Sample size for real data'. Setting this to
+zero tells the application to load the full dataset — in our case the Kaggle AGC
+greenhouse CSV. Setting it to, say, 500 loads only 500 records. I built this in
+deliberately because during development I needed to iterate quickly, and loading
+tens of thousands of rows into Plotly charts every time was too slow. For the
+final demonstration I set it to zero to use the complete dataset.
+
+The second control is a dropdown — 'Select Prediction Model' — which lets the
+examiner choose between the stacked LSTM and the linear regression baseline.
+This single switch changes which model's predictions are displayed in the
+evaluation tab. It keeps both models present in the same application rather than
+requiring two separate scripts.
+
+[Point to the slider.]
+
+The third control is the most interesting one interactively — a timeline slider.
+It ranges from step zero, the very first record in the dataset, all the way to
+the last record. When I drag this slider, every element on the page updates
+simultaneously: the KPI cards change to reflect the sensor readings at that
+moment in time, and the procedural plant on Tab Two re-renders at the
+corresponding height.
+
+This is the core of what makes it a digital twin dashboard rather than just a
+static report — it gives the user the ability to replay the state history of the
+greenhouse and inspect any point in time."
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 2 — KPI METRIC CARDS  (≈ 90 seconds)
+────────────────────────────────────────────────────────────────────────────────
+
+[Point to the five metric cards at the top of the main page.]
+
+"Directly below the title, across the full width of the page, there are five KPI
+cards — one for each of the canonical fields in my DigitalTwinState schema.
+
+Reading left to right: Temperature in degrees Celsius, Relative Humidity as a
+percentage, CO₂ concentration in parts per million, PAR light intensity in
+micromoles per square metre per second, and finally Plant Height in centimetres.
+
+Each card shows the current value for whichever step is selected on the timeline
+slider. The first three cards also show a delta arrow — the deviation from the
+agronomic setpoint. For temperature that setpoint is 22 degrees, for humidity
+it's 70 percent, and for CO₂ it's 800 parts per million. A green upward arrow
+means the reading is above setpoint; a red downward arrow means it is below.
+
+[Drag the timeline slider to demonstrate the cards updating.]
+
+You can see that as I drag the slider the values change in real time. This is the
+state synchronisation property of a digital twin — the dashboard reflects the
+physical system's condition at each recorded moment.
+
+I chose these five variables specifically because they are the ones the
+literature identifies as primary drivers of tomato growth: temperature and CO₂
+govern photosynthesis, humidity governs transpiration, light governs
+photoassimilate production, and plant height is the integrated outcome variable
+we are trying to predict."
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 3 — TAB ONE: SENSOR TELEMETRY  (≈ 2 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+[Click on the first tab: "📊 Digital Twin & Sensor Telemetry"]
+
+"The first tab is titled 'Digital Twin & Sensor Telemetry'. It receives the
+dataset records from step zero up to the currently selected slider position, so
+it always shows the history up to the moment in time I've chosen.
+
+[Point to the large dual-axis chart.]
+
+The main chart at the top plots temperature and humidity on the same time axis
+using a dual y-axis layout. Temperature is on the left axis in orange, humidity
+on the right in blue. I chose a dual-axis design rather than two separate charts
+because these two variables are inversely correlated in a greenhouse environment
+— when temperature rises, humidity typically falls as the air's moisture-holding
+capacity increases — and I wanted that inverse relationship to be visually
+obvious to the user.
+
+[Point to the two smaller charts below.]
+
+Below the main chart there are two side-by-side panels. The left one shows CO₂
+concentration over time in green. You can see the characteristic daily variation:
+CO₂ drops during the daytime photosynthesis window as the plants consume it, and
+recovers overnight. The right panel shows PAR light intensity in amber, which
+follows a bell-curve pattern centred on solar noon — this is the diurnal light
+cycle modelled in the sensor simulator.
+
+All four of these charts are Plotly interactive graphs — the examiner can hover
+to see exact values, zoom into any time window, or toggle individual traces on
+and off by clicking the legend. That interactivity was one of the reasons I chose
+Plotly over static Matplotlib for the dashboard layer, while still using
+Matplotlib for the exported publication-quality figures in the results folder."
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 4 — TAB TWO: L-SYSTEM PLANT VISUALISATION  (≈ 2 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+[Click on the second tab: "🪴 Procedural L-System Plant Growth"]
+
+"The second tab renders the procedural plant visualisation component. This is one
+of the most visually distinctive parts of the system, so I want to explain both
+what it shows and why I included it.
+
+[Point to the rendered plant structure.]
+
+What you see here is a two-dimensional plant structure generated using a
+Lindenmayer System — an L-System. The plant is not a photograph or a hand-drawn
+illustration. It is generated entirely in code by the PlantRenderer class, which
+reads the current plant height from the digital twin state and uses that value to
+determine the branching depth and stem length of the grammar expansion.
+
+The L-System works by starting with an axiom — a single symbol representing a
+stem segment — and repeatedly applying production rules that replace that symbol
+with a pattern of stems, branches, and rotation commands. After several
+iterations the string encodes the full branching structure, and a turtle-geometry
+interpreter converts that string into Plotly line segments on screen.
+
+[Drag the timeline slider to show the plant changing.]
+
+If I move the slider to an earlier step — when the plant was shorter — the
+structure simplifies: fewer branches, less height. As I advance to later steps
+the plant grows taller and more architecturally complex, reflecting the
+accumulated growth computed by the GDD model in plant dot py.
+
+I want to be explicit about its limitations: this is a morphological
+representation, not a quantitative biomass model. I'm not claiming the branching
+angle of twenty-five degrees maps to a specific cultivar. The value of this
+component is that it makes the digital twin's state legible to a human operator
+at a glance — a grower looking at this dashboard can immediately see whether the
+plant is at a seedling, vegetative, or reproductive stage without reading a
+number."
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 5 — TAB THREE: MODEL EVALUATION  (≈ 2.5 minutes)
+────────────────────────────────────────────────────────────────────────────────
+
+[Click on the third tab: "📈 Model Predictions & MSc Evaluation"]
+
+"The third tab is the most directly relevant to the research contribution —
+it contains the machine learning evaluation results.
+
+[Point to the metrics table.]
+
+At the top is an interactive data table loaded from results/metrics_summary.csv,
+which is written out by the evaluation pipeline after training. It contains one
+row per model and columns for MAE, RMSE, R², training time, and inference time.
+The table applies conditional formatting automatically: the cells with the lowest
+MAE and RMSE values are highlighted in green, as are the cells with the highest
+R² — so the better-performing model is immediately obvious.
+
+The stacked LSTM consistently achieves lower error than the linear regression
+baseline on these metrics, which answers Research Question Two directly.
+However — and this is something I want to be upfront about — the LSTM's
+advantage comes at the cost of training time and interpretability, which is why I
+retained the baseline rather than discarding it.
+
+[Point to the actual vs predicted plot.]
+
+Below the table there are three visualisation panels. The first shows actual
+versus predicted plant height trajectories for both models overlaid on the same
+chart. A perfect model would produce a line sitting exactly on top of the ground
+truth. You can see the LSTM tracks the trajectory more closely, particularly
+through the steeper growth phases in the middle of the sequence, while the linear
+regression model tends to lag or smooth over sudden transitions.
+
+[Point to the residuals plot.]
+
+The second panel shows the residual distributions — the signed errors for each
+prediction. What I'm looking for here is whether the errors are centred on zero
+with no systematic bias, or whether the model consistently over-predicts or
+under-predicts. Random scatter around zero is healthy; a structured pattern
+would indicate a systematic flaw in either the model or the data preparation.
+
+[Point to the loss curve.]
+
+The third panel is only relevant to the LSTM: it's the training and validation
+loss convergence curve across epochs. This tells me whether the model actually
+learned during training or whether the gradient updates stalled. A smoothly
+decreasing training loss that stabilises without diverging confirms the
+optimisation was stable.
+
+I want to flag that these results were generated on the available dataset, which
+has limitations I discuss in the dissertation's limitations chapter. The numbers
+should be interpreted as indicative of relative model behaviour rather than
+absolute deployment-ready accuracy figures."
+
+
+────────────────────────────────────────────────────────────────────────────────
+(OPTIONAL) SECTION 6 — ARCHITECTURE & DESIGN DECISIONS  (≈ 90 seconds)
+────────────────────────────────────────────────────────────────────────────────
+
+"Before I finish the walkthrough I want to highlight two architectural decisions
+that aren't immediately visible on screen but are important for understanding
+why the dashboard is built the way it is.
+
+First, every piece of data the dashboard displays comes from the same canonical
+source — the CSV exported by the pipeline and the results folder written by the
+evaluator. There is no separate database for the dashboard. This means the
+dashboard is also an integration test: if the pipeline has a bug that corrupts
+the data, it manifests as a visual anomaly here rather than as a silent failure.
+During development, spotting inconsistencies in the charts was actually how I
+caught two preprocessing bugs.
+
+Second, the Streamlit caching decorator — @st.cache_data — is applied to the
+data loading function. This means the dataset is only read from disk once per
+session, not on every slider interaction. Without caching, dragging the slider
+would re-read hundreds of megabytes from disk on each movement, making the
+interface unusable. The caching decision was a practical necessity rather than
+an optimisation afterthought."
+
+
+────────────────────────────────────────────────────────────────────────────────
+CLOSING  (≈ 30 seconds)
+────────────────────────────────────────────────────────────────────────────────
+
+"To summarise: the dashboard brings together the five core components of the
+system — the digital twin state engine, the sensor telemetry, the procedural
+plant renderer, the predictive ML pipeline, and the evaluation artefacts — into
+a single interactive interface that a greenhouse operator or researcher can use
+to inspect, replay, and compare outcomes.
+
+I'm happy to navigate to any specific section, adjust the slider, switch the
+model, or load a smaller sample if you'd like to see any particular interaction
+in more detail."
+
+
+════════════════════════════════════════════════════════════════════════════════
+  LIKELY VIVA QUESTIONS ON THE DASHBOARD — SUGGESTED RESPONSES
+════════════════════════════════════════════════════════════════════════════════
+
+Q: Why Streamlit rather than a more traditional framework like Flask or Django?
+A: "Streamlit was the right tool for this scope — it lets me write the
+   analytics and the UI in the same Python file, so there's no context switch
+   between the data layer and the presentation layer. Flask would have required
+   a REST API, a template engine, and JavaScript, which would have tripled the
+   implementation complexity for no additional research value. If this were being
+   deployed commercially I would revisit that choice, but for a research
+   prototype Streamlit was appropriate."
+
+Q: The dashboard uses real data — how do you know it's not just memorising it?
+A: "The model is trained on the first 80 percent of the chronologically ordered
+   dataset and evaluated on the remaining 20 percent. The dashboard visualises
+   the test-set predictions only — the model has never seen those records during
+   training. The chronological split is critical: a random split would allow
+   future observations to contaminate the training set, which would give
+   artificially optimistic metrics."
+
+Q: What happens if someone loads a very large dataset — does the dashboard scale?
+A: "The sample-size control in the sidebar exists precisely for this reason.
+   The @st.cache_data decorator ensures data is only loaded once, and Plotly's
+   WebGL renderer handles large time series reasonably well. For very large
+   deployments I would consider pre-aggregating the telemetry and serving it
+   from a proper time-series database rather than loading raw CSVs into memory."
+
+Q: The L-System plant — is it scientifically accurate?
+A: "It's morphologically plausible rather than scientifically calibrated. The
+   branching angle and iteration depth are not derived from cultivar data — they
+   are parameters I chose to produce a visually legible structure. The height
+   input is real, from the GDD model, but the branching geometry is illustrative.
+   A future improvement would be to calibrate the production rules against
+   measured tomato plant architecture data."
+
+Q: Why does the delta on the KPI cards compare against fixed setpoints?
+A: "Those setpoints — 22°C for temperature, 70% for humidity, 800 ppm for CO₂ —
+   are the agronomically optimal values cited in the literature for tomato
+   cultivation. The delta gives the operator an immediate at-a-glance signal of
+   whether the greenhouse is within the optimal band without requiring them to
+   remember the target values. It's a UX decision rather than a modelling one."
+
+Q: Could you add the RL agent's recommended actions to the dashboard?
+A: "Yes — that's a natural next step. The RL agent produces a four-dimensional
+   continuous action vector at each timestep. Adding a fifth tab that shows the
+   agent's recommended heating, humidification, CO₂ injection, and lighting
+   settings alongside the current state would close the decision-support loop.
+   That's listed explicitly in the future work section of the dissertation."
+
+════════════════════════════════════════════════════════════════════════════════
